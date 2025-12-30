@@ -1,0 +1,26 @@
+idf_component_register(
+                         SRCS "main.c"
+                              "aquarium_controller.c"
+                              "aquarium_ui.c"
+                              "Matter/aquarium_matter.cpp"
+                              "LCD_Driver/Vernon_ST7789T/Vernon_ST7789T.c"
+                              "LCD_Driver/ST7789.c"
+                              "LVGL_Driver/LVGL_Driver.c"
+                              "SD_Card/SD_SPI.c"
+                              "RGB/RGB.c"
+                              "Wireless/Wireless.c"
+                              "Wireless/wifi_sta.c"
+                              "fonts/font_temp_72.c"
+                              "fonts/font_temp_36.c"
+                              "LVGL_UI/nemo_img.c"
+
+                         INCLUDE_DIRS
+                              "./LCD_Driver/Vernon_ST7789T"
+                              "./LCD_Driver"
+                              "./LVGL_Driver"
+                              "./SD_Card"
+                              "./RGB"
+                              "./Wireless"
+                              "./Matter"
+                              "."
+                       )

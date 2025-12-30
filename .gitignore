@@ -1,0 +1,18 @@
+# Build
+build/
+sdkconfig.old
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Mac
+.DS_Store
+**/.DS_Store
+
+# Dependencies (managed by ESP-IDF)
+managed_components/
+
+# Secrets
+sdkconfig.defaults.local
