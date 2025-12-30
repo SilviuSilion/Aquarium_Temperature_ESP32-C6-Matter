@@ -51,7 +51,7 @@ static void ui_update_timer_cb(lv_timer_t *timer) {
         lv_label_set_text(temp_dec_label, ".-°");
         lv_obj_set_style_text_color(temp_int_label, COLOR_GRAY, 0);
         lv_obj_set_style_text_color(temp_dec_label, COLOR_GRAY, 0);
-        lv_label_set_text(status_text, "SENZOR?");
+        lv_label_set_text(status_text, "SENSOR?");
         lv_obj_set_style_text_color(status_text, COLOR_RED, 0);
         lv_obj_set_style_bg_color(status_dot, COLOR_RED, 0);
     } else {
@@ -72,19 +72,19 @@ static void ui_update_timer_cb(lv_timer_t *timer) {
         if (temp < TEMP_MIN_NORMAL) {
             lv_obj_set_style_text_color(temp_int_label, COLOR_RED, 0);
             lv_obj_set_style_text_color(temp_dec_label, COLOR_RED, 0);
-            lv_label_set_text(status_text, "RECE!");
+            lv_label_set_text(status_text, "COLD!");
             lv_obj_set_style_text_color(status_text, COLOR_RED, 0);
             lv_obj_set_style_bg_color(status_dot, COLOR_RED, 0);
         } else if (temp > TEMP_MAX_NORMAL) {
             lv_obj_set_style_text_color(temp_int_label, COLOR_RED, 0);
             lv_obj_set_style_text_color(temp_dec_label, COLOR_RED, 0);
-            lv_label_set_text(status_text, "CALD!");
+            lv_label_set_text(status_text, "HOT!");
             lv_obj_set_style_text_color(status_text, COLOR_RED, 0);
             lv_obj_set_style_bg_color(status_dot, COLOR_RED, 0);
         } else {
             lv_obj_set_style_text_color(temp_int_label, COLOR_CYAN, 0);
             lv_obj_set_style_text_color(temp_dec_label, COLOR_CYAN, 0);
-            lv_label_set_text(status_text, "OPTIM");
+            lv_label_set_text(status_text, "OPTIMAL");
             lv_obj_set_style_text_color(status_text, COLOR_GREEN, 0);
             lv_obj_set_style_bg_color(status_dot, COLOR_GREEN, 0);
         }
@@ -137,7 +137,7 @@ void aquarium_ui_init(void) {
     lv_obj_set_style_shadow_color(status_dot, COLOR_GREEN, 0);
     lv_obj_set_style_shadow_width(status_dot, 15, 0);
     lv_obj_set_style_shadow_spread(status_dot, 2, 0);
-    lv_obj_align(status_dot, LV_ALIGN_BOTTOM_MID, -35, -35);
+    lv_obj_align(status_dot, LV_ALIGN_BOTTOM_MID, -40, -35);
     
     // Pulse animation
     lv_anim_t a;
