@@ -186,29 +186,19 @@ bool aquarium_matter_init(void)
  */
 extern "C" void aquarium_matter_update_temperature(float temp_celsius)
 {
-    ESP_LOGI(TAG, ">>> UPDATE TEMP CALLED: %.2f°C", temp_celsius);
-    
     if (temperature_endpoint_id == 0) {
-        ESP_LOGW(TAG, "Matter not initialized");
         return;
     }
     
     // Convert to Matter format (0.01°C resolution)
-    // Matter uses int16 with 0.01°C units
     int16_t temp_matter = (int16_t)(temp_celsius * 100.0f);
     
-    // Update attribute using esp_matter API
+    // Update attribute
     esp_matter_attr_val_t val = esp_matter_nullable_int16(temp_matter);
-    esp_err_t err = attribute::update(temperature_endpoint_id, 
-                                       TemperatureMeasurement::Id,
-                                       TemperatureMeasurement::Attributes::MeasuredValue::Id, 
-                                       &val);
-    
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, ">>> Matter temp updated: %.2f°C (raw: %d)", temp_celsius, temp_matter);
-    } else {
-        ESP_LOGE(TAG, ">>> FAILED to update Matter temp: %s", esp_err_to_name(err));
-    }
+    attribute::update(temperature_endpoint_id, 
+                      TemperatureMeasurement::Id,
+                      TemperatureMeasurement::Attributes::MeasuredValue::Id, 
+                      &val);
 }
 
 /**

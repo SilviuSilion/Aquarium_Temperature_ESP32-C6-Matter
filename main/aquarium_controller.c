@@ -119,17 +119,6 @@ static uint8_t crc8(uint8_t *data, uint8_t len) {
 static float try_read_temperature(void) {
     gpio_num_t pin = DS18B20_GPIO;
     
-    // Configure GPIO
-    gpio_config_t io = {
-        .pin_bit_mask = 1ULL << pin,
-        .mode = GPIO_MODE_INPUT_OUTPUT_OD,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&io);
-    ow_release(pin);
-    
     // Reset and check presence
     if (ow_reset(pin) != 0) {
         return NAN;
@@ -140,7 +129,7 @@ static float try_read_temperature(void) {
     ow_write_byte(pin, 0x44);
     
     // Wait for conversion
-    vTaskDelay(pdMS_TO_TICKS(800));
+    vTaskDelay(pdMS_TO_TICKS(750));
     
     // Reset again
     if (ow_reset(pin) != 0) {
@@ -262,8 +251,8 @@ static void aquarium_task(void *arg) {
         
         update_led(g_last_temperature);
         
-        // Wait 5 seconds total (minus time spent reading)
-        vTaskDelay(pdMS_TO_TICKS(TEMP_UPDATE_INTERVAL_MS - 800 * MAX_READ_RETRIES));
+        // Wait 5 seconds (precise timing)
+        vTaskDelay(pdMS_TO_TICKS(TEMP_UPDATE_INTERVAL_MS));
     }
 }
 
@@ -273,6 +262,17 @@ static void aquarium_task(void *arg) {
 
 void aquarium_controller_init(void) {
     ESP_LOGI(TAG, "Controller init - GPIO%d", DS18B20_GPIO);
+    
+    // Configure GPIO for DS18B20 (once at init)
+    gpio_config_t io = {
+        .pin_bit_mask = 1ULL << DS18B20_GPIO,
+        .mode = GPIO_MODE_INPUT_OUTPUT_OD,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io);
+    ow_release(DS18B20_GPIO);
 }
 
 void aquarium_start(void) {

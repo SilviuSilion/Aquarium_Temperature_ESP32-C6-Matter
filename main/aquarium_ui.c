@@ -156,11 +156,10 @@ void aquarium_ui_init(void) {
     lv_obj_set_style_text_font(status_text, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(status_text, COLOR_GREEN, 0);
     lv_obj_set_style_text_letter_space(status_text, 2, 0);
-    lv_obj_align(status_dot, LV_ALIGN_BOTTOM_MID, -35, -35);
     lv_obj_align_to(status_text, status_dot, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     
-    // Update timer
-    lv_timer_create(ui_update_timer_cb, 200, NULL);
+    // Update timer (500ms - sufficient for 5s temp updates)
+    lv_timer_create(ui_update_timer_cb, 500, NULL);
     
     ESP_LOGI(TAG, "Neon Glow UI ready");
 }
