@@ -4,8 +4,8 @@
  * 
  * Features:
  * - DS18B20 temperature sensor (5 sec interval)
- * - RGB LED at 30% brightness
- * - Display at 40% brightness
+ * - RGB LED at 18% brightness
+ * - Display at 50% brightness
  * - Matter/HomeKit integration
  * 
  * Manufacturer: Claude&Silviu
@@ -23,7 +23,7 @@
 static const char *TAG = "MAIN";
 
 // Display brightness (0-100)
-#define DISPLAY_BRIGHTNESS 40
+#define DISPLAY_BRIGHTNESS 50
 
 void app_main(void)
 {
@@ -34,7 +34,7 @@ void app_main(void)
     
     // RGB LED (first - no dependencies)
     RGB_Init();
-    ESP_LOGI(TAG, "✓ RGB LED (30%% brightness)");
+    ESP_LOGI(TAG, "✓ RGB LED (18%% brightness)");
     
     // Display (before WiFi - uses SPI2)
     LCD_Init();
@@ -49,6 +49,9 @@ void app_main(void)
     
     // UI
     aquarium_ui_init();
+    
+    // Force first UI render before WiFi/Matter (which take time)
+    lv_timer_handler();
     
     // WiFi (needed for Matter)
     ESP_LOGI(TAG, "");

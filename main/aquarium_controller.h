@@ -4,7 +4,7 @@
  * 
  * Features:
  * - DS18B20 temperature sensor on GPIO3
- * - RGB LED control based on temperature (30% power)
+ * - RGB LED control based on temperature (18% power)
  * - Matter/HomeKit integration
  * - 5 second update interval
  */
@@ -26,7 +26,7 @@
 #define TEMP_UPDATE_INTERVAL_MS 5000
 
 // LED brightness (0.0 - 1.0)
-#define LED_BRIGHTNESS 0.30f  // 30% power
+#define LED_BRIGHTNESS 0.18f  // 18% power
 
 // Function prototypes
 void aquarium_controller_init(void);

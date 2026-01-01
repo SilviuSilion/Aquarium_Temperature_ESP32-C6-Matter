@@ -3,17 +3,19 @@
  * @brief Aquarium Temperature Controller
  * 
  * - DS18B20 temperature reading every 5 seconds
- * - RGB LED at 30% brightness
+ * - RGB LED at 18% brightness
  * - Matter/HomeKit updates
- * - Retry on CRC errors
+ * - Critical sections for reliable OneWire timing
  */
 
 #include "aquarium_controller.h"
 #include "RGB.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "esp_attr.h"
 #include <math.h>
 #include "Matter/aquarium_matter.h"
 
@@ -27,8 +29,10 @@ static bool g_temperature_valid = false;
 #define MAX_READ_RETRIES 3
 
 // ============================================================================
-// DS18B20 1-Wire Implementation
+// DS18B20 1-Wire Implementation (with critical sections)
 // ============================================================================
+
+static portMUX_TYPE ow_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 static inline void ow_delay_us(uint32_t us) { 
     esp_rom_delay_us(us); 
@@ -49,12 +53,14 @@ static int ow_read(gpio_num_t pin) {
 }
 
 static int ow_reset(gpio_num_t pin) {
+    portENTER_CRITICAL(&ow_spinlock);
     ow_drive_low(pin);
     ow_delay_us(480);
     ow_release(pin);
     ow_delay_us(70);
     int presence = (ow_read(pin) == 0);
     ow_delay_us(410);
+    portEXIT_CRITICAL(&ow_spinlock);
     return presence ? 0 : -1;
 }
 
@@ -83,14 +89,18 @@ static int ow_read_bit(gpio_num_t pin) {
 }
 
 static void ow_write_byte(gpio_num_t pin, uint8_t v) {
+    portENTER_CRITICAL(&ow_spinlock);
     for (int i = 0; i < 8; i++) 
         ow_write_bit(pin, (v >> i) & 1);
+    portEXIT_CRITICAL(&ow_spinlock);
 }
 
 static uint8_t ow_read_byte(gpio_num_t pin) {
+    portENTER_CRITICAL(&ow_spinlock);
     uint8_t r = 0;
     for (int i = 0; i < 8; i++) 
         r |= (ow_read_bit(pin) << i);
+    portEXIT_CRITICAL(&ow_spinlock);
     return r;
 }
 
@@ -119,6 +129,17 @@ static uint8_t crc8(uint8_t *data, uint8_t len) {
 static float try_read_temperature(void) {
     gpio_num_t pin = DS18B20_GPIO;
     
+    // Configure GPIO each time (needed for reliable readings)
+    gpio_config_t io = {
+        .pin_bit_mask = 1ULL << pin,
+        .mode = GPIO_MODE_INPUT_OUTPUT_OD,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io);
+    ow_release(pin);
+    
     // Reset and check presence
     if (ow_reset(pin) != 0) {
         return NAN;
@@ -128,7 +149,7 @@ static float try_read_temperature(void) {
     ow_write_byte(pin, 0xCC);
     ow_write_byte(pin, 0x44);
     
-    // Wait for conversion
+    // Wait for conversion (750ms is enough for 12-bit)
     vTaskDelay(pdMS_TO_TICKS(750));
     
     // Reset again
@@ -197,7 +218,7 @@ bool aquarium_is_temperature_valid(void) {
 }
 
 // ============================================================================
-// RGB LED Control (30%)
+// RGB LED Control (18%)
 // ============================================================================
 
 static void update_led(float temp) {
@@ -233,25 +254,26 @@ static void update_led(float temp) {
 
 static void aquarium_task(void *arg) {
     ESP_LOGI(TAG, "Temperature monitoring started");
-    ESP_LOGI(TAG, "   Interval: %d sec, Retries: %d", TEMP_UPDATE_INTERVAL_MS / 1000, MAX_READ_RETRIES);
+    ESP_LOGI(TAG, "   Interval: %d sec", TEMP_UPDATE_INTERVAL_MS / 1000);
     
     while (1) {
+        int64_t start = esp_timer_get_time();
         float temp = read_ds18b20_temperature();
+        int64_t read_time = (esp_timer_get_time() - start) / 1000;
         
         if (!isnan(temp)) {
             g_last_temperature = temp;
             g_temperature_valid = true;
             
-            ESP_LOGI(TAG, "🌡️ %.1f°C", temp);
+            ESP_LOGI(TAG, "🌡️ %.1f°C (read: %lldms)", temp, read_time);
             aquarium_matter_update_temperature(temp);
         } else {
-            // Keep last valid temperature, just log warning
-            ESP_LOGW(TAG, "⚠️ Read failed (keeping %.1f°C)", g_last_temperature);
+            ESP_LOGW(TAG, "⚠️ Read failed (took %lldms)", read_time);
         }
         
         update_led(g_last_temperature);
         
-        // Wait 5 seconds (precise timing)
+        // Wait for next interval
         vTaskDelay(pdMS_TO_TICKS(TEMP_UPDATE_INTERVAL_MS));
     }
 }
@@ -262,19 +284,10 @@ static void aquarium_task(void *arg) {
 
 void aquarium_controller_init(void) {
     ESP_LOGI(TAG, "Controller init - GPIO%d", DS18B20_GPIO);
-    
-    // Configure GPIO for DS18B20 (once at init)
-    gpio_config_t io = {
-        .pin_bit_mask = 1ULL << DS18B20_GPIO,
-        .mode = GPIO_MODE_INPUT_OUTPUT_OD,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&io);
-    ow_release(DS18B20_GPIO);
 }
 
 void aquarium_start(void) {
-    xTaskCreatePinnedToCore(aquarium_task, "aquarium", 4096, NULL, 5, NULL, 0);
+    // Higher priority (6) to reduce WiFi/Matter interference
+    // ESP32-C6 is single core, so use core 0
+    xTaskCreatePinnedToCore(aquarium_task, "aquarium", 4096, NULL, 6, NULL, 0);
 }

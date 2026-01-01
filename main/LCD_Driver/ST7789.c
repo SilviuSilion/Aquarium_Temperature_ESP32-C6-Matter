@@ -56,7 +56,7 @@ void LCD_Init(void)
     // gpio_set_level(EXAMPLE_PIN_NUM_BK_LIGHT, EXAMPLE_LCD_BK_LIGHT_ON_LEVEL);
     
     BK_Init();                                                                                          // Initialize the backlight
-    BK_Light(75);
+    BK_Light(50);  // Initial brightness 50%
 
 }
 
